@@ -1,137 +1,117 @@
-import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { Link } from 'expo-router';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import React, { useState } from 'react';
+import { View, TextInput, Button, StyleSheet, Alert, Text, SafeAreaView, Pressable } from 'react-native';
+import { signInWithEmail, signUpWithEmail } from '../lib/firebase/auth'; // 作成した認証関数をインポート
+import { Colors } from '../constants/Colors'; // 定義した色を使用
 
-export default function LoginScreen() {
+const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // サインイン（ログイン）処理
-  const handleSignIn = async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      // ログイン処理を実行するだけ。画面遷移のコードは削除。
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
-      console.error(error);
-      Alert.alert('ログイン失敗', 'メールアドレスかパスワードが間違っています。');
-    } finally {
-      setLoading(false);
+  // ログイン処理
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('エラー', 'メールアドレスとパスワードを入力してください。');
+      return;
     }
+    setLoading(true);
+    const { error } = await signInWithEmail(email, password);
+    if (error) {
+      Alert.alert('ログインエラー', 'メールアドレスまたはパスワードが違います。');
+    }
+    // 成功時の画面遷移は app/_layout.tsx のリダイレクト処理に任せます
+    setLoading(false);
   };
 
-  // サインアップ（新規登録）処理
+  // 新規登録処理
   const handleSignUp = async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      Alert.alert('登録成功', 'アカウントを作成しました。続けてログインしてください。');
-    } catch (error: any) {
-      console.error(error);
-      Alert.alert('登録失敗', error.message);
-    } finally {
-      setLoading(false);
+    if (!email || !password) {
+      Alert.alert('エラー', 'メールアドレスとパスワードを入力してください。');
+      return;
     }
+    setLoading(true);
+    const { error } = await signUpWithEmail(email, password);
+    if (error) {
+      Alert.alert('登録エラー', 'このメールアドレスは既に使用されているか、形式が正しくありません。');
+    }
+    // 成功時の画面遷移も app/_layout.tsx が自動で行います
+    setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>BuddyCall</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="メールアドレス"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="パスワード"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#007AFF" />
-      ) : (
-        <>
-          <Pressable style={styles.button} onPress={handleSignIn}>
-            <Text style={styles.buttonText}>ログイン</Text>
-          </Pressable>
-          <Pressable style={[styles.button, styles.subButton]} onPress={handleSignUp}>
-            <Text style={[styles.buttonText, styles.subButtonText]}>新規登録</Text>
-          </Pressable>
-        </>
-      )}
-      
-      <Link href="/(tabs)" asChild>
-        <Pressable style={styles.guestButton}>
-            <Text style={styles.guestButtonText}>ゲストとして続ける</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.innerContainer}>
+        <Text style={styles.title}>Buddy Call</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="メールアドレス"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholderTextColor="#888"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="パスワード"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          placeholderTextColor="#888"
+        />
+        <Pressable style={styles.button} onPress={handleLogin} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? '処理中...' : 'ログイン'}</Text>
         </Pressable>
-      </Link>
-    </View>
+        <Pressable style={[styles.button, styles.signUpButton]} onPress={handleSignUp} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? '...' : '新規登録'}</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
-}
+};
 
-// --- スタイル定義（変更なし） ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f0f4f8',
+  },
+  innerContainer: {
+    flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#F5F5F7',
+    padding: 24,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 40,
-    color: '#1D1D1F',
+    color: Colors.light.tint,
   },
   input: {
-    backgroundColor: 'white',
-    paddingHorizontal: 15,
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    fontSize: 16,
+    height: 50,
+    borderColor: '#ddd',
     borderWidth: 1,
-    borderColor: '#E5E5E7',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    fontSize: 16,
   },
   button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 16,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 10,
+    marginTop: 10,
+  },
+  signUpButton: {
+    backgroundColor: '#5c6ac4',
   },
   buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
   },
-  subButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  subButtonText: {
-    color: '#007AFF',
-  },
-  guestButton: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  guestButtonText: {
-    color: '#6E6E73',
-    fontSize: 14,
-  }
 });
+
+export default LoginScreen;
